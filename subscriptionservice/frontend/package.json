@@ -1,0 +1,11 @@
+{
+  "name": "subscription-frontend",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "test-login": "node test-login.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
