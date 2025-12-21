@@ -34,4 +34,36 @@ public class AuthControllerUnitTest {
         assertEquals("dummy-token-for-test@test.com", res.get("token"));
     }
 
+    @Test
+    void meReturnsEmail() {
+        JwtService jwt = new JwtService() {
+            @Override
+            public String generateToken(String email) {
+                return null;
+            }
+
+            @Override
+            public String extractEmail(String token) {
+                return "test@test.com";
+            }
+        };
+
+        AuthController controller = new AuthController(jwt);
+        Map<String, String> res = controller.me("Bearer some-token");
+        assertEquals("test@test.com", res.get("email"));
+    }
+
+    @Test
+    void meWithoutAuthThrows() {
+        JwtService jwt = new JwtService() {
+            @Override
+            public String generateToken(String email) { return null; }
+            @Override
+            public String extractEmail(String token) { return null; }
+        };
+
+        AuthController controller = new AuthController(jwt);
+        org.junit.jupiter.api.Assertions.assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> controller.me(null));
+    }
+
 }
