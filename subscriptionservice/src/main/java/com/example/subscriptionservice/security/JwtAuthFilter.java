@@ -1,18 +1,19 @@
 package com.example.subscriptionservice.security;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
-import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 
 @Component
-public class JwtAuthFilter implements Filter {
+public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
 
@@ -21,29 +22,22 @@ public class JwtAuthFilter implements Filter {
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        HttpServletRequest req = (HttpServletRequest) request;
-        HttpServletResponse res = (HttpServletResponse) response;
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws IOException, ServletException {
+        String auth = req.getHeader("Authorization");
 
-        String path = req.getRequestURI();
-
-        // Protect subscriptions and dashboard endpoints
-        if (path.startsWith("/subscriptions") || path.equals("/dashboard")) {
-            String auth = req.getHeader("Authorization");
-            if (auth == null || !auth.startsWith("Bearer ")) {
-                res.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-                return;
-            }
-
+        if (auth != null && auth.startsWith("Bearer ")) {
             String token = auth.substring("Bearer ".length());
             try {
-                jwtService.extractEmail(token);
+                String email = jwtService.extractEmail(token);
+                // create a simple Authentication and set it in the context
+                Authentication authentication = new UsernamePasswordAuthenticationToken(email, null, java.util.Collections.emptyList());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception e) {
                 res.sendError(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }
         }
 
-        chain.doFilter(request, response);
+        chain.doFilter(req, res);
     }
 }

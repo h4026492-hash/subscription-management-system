@@ -28,8 +28,9 @@ public class JwtAuthFilterUnitTest {
 
         filter.doFilter(req, res, chain);
 
-        verify(res).sendError(HttpServletResponse.SC_UNAUTHORIZED);
-        verify(chain, never()).doFilter(any(), any(ServletResponse.class));
+        // no Authorization header -> filter should allow the chain to continue; security will enforce authentication
+        verify(chain).doFilter(req, res);
+        verify(res, never()).sendError(anyInt());
     }
 
     @Test
@@ -50,5 +51,24 @@ public class JwtAuthFilterUnitTest {
 
         verify(chain).doFilter(req, res);
         verify(res, never()).sendError(anyInt());
+    }
+
+    @Test
+    void invalidTokenReturnsUnauthorized() throws Exception {
+        JwtService jwt = mock(JwtService.class);
+        when(jwt.extractEmail(anyString())).thenThrow(new RuntimeException("bad token"));
+
+        JwtAuthFilter filter = new JwtAuthFilter(jwt);
+
+        HttpServletRequest req = mock(HttpServletRequest.class);
+        HttpServletResponse res = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(req.getHeader("Authorization")).thenReturn("Bearer invalid.token");
+
+        filter.doFilter(req, res, chain);
+
+        verify(res).sendError(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(chain, never()).doFilter(any(), any(ServletResponse.class));
     }
 }
